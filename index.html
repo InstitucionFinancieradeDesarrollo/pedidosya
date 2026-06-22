@@ -324,7 +324,7 @@
                 <!-- FOTÓN GIGANTE EN PNG PARA PEDIR DIRECTO -->
                 <button onclick="pedirDirectoPorWhatsApp()" class="w-full relative flex items-center justify-center whatsapp-btn-img mt-1 mb-2">
                     <!-- Usamos una imagen que parezca un botón grande de WhatsApp -->
-                    <img src="WhatsApp.png" alt="WhatsApp" class="w-12 h-12 absolute left-4 drop-shadow-md z-10">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" class="w-12 h-12 absolute left-4 drop-shadow-md z-10" onerror="this.style.display='none'">
                     <div class="w-full bg-[#25D366] text-white font-bold py-4 pl-12 pr-4 rounded-xl text-xl shadow-lg text-center flex items-center justify-center border-b-4 border-[#128C7E]">
                         ¡Pedir Ahora!
                     </div>
@@ -348,15 +348,13 @@
         // =====================================================================
         // CONFIGURACIÓN DE IMÁGENES AUTOMÁTICAS POR CÓDIGO
         // =====================================================================
-        // Cambia a 'true' si usas un hosting tradicional (no Drive) para tus imágenes
         const USAR_IMAGENES_POR_CODIGO = true; 
         
-        // MODIFICACIÓN APLICADA: 
-        // 1. Usar raw.githubusercontent.com en lugar del dominio normal de github.com
-        // 2. Añadir la barra diagonal '/' al final para que concatene correctamente con el código de la imagen
-        const URL_HOSTING_IMAGENES = "https://raw.githubusercontent.com/InstitucionFinancieradeDesarrollo/pedidosya/c6435f464a3a1fce5fd5c703f08011a0c0b0e167/comida/"; 
+        // 1. AQUI SE CAMBIÓ AL PERMALINK CORRECTO USANDO RAW.GITHUBUSERCONTENT
+        const URL_HOSTING_IMAGENES = "https://raw.githubusercontent.com/InstitucionFinancieradeDesarrollo/pedidosya/bb7b1cb250ce6e97873584151f0707a9270305c2/comida/"; 
         
-        const EXTENSION_IMAGEN = ".png"; // Asegúrate de que las imágenes en tu carpeta sean .png, si son .jpg cámbialo a ".jpg"
+        // 2. AQUI SE CAMBIÓ A .jpg COMO SOLICITASTE
+        const EXTENSION_IMAGEN = ".jpg"; 
         // =====================================================================
 
         let productosBaseDeDatos = [];
@@ -417,7 +415,7 @@
         // Función para obtener las URLs de las imágenes
         function obtenerImagenesProducto(prod) {
             if (USAR_IMAGENES_POR_CODIGO && prod.Codigo) {
-                // Autogenera los enlaces en base al código: ej 456512A.png
+                // Autogenera los enlaces en base al código: ej 121201A.jpg
                 return [
                     `${URL_HOSTING_IMAGENES}${prod.Codigo}A${EXTENSION_IMAGEN}`,
                     `${URL_HOSTING_IMAGENES}${prod.Codigo}B${EXTENSION_IMAGEN}`,
@@ -495,11 +493,12 @@
                     card.onclick = () => mostrarVistaProducto(prod);
                     card.innerHTML = `
                         <div class="h-32 bg-gray-50 flex items-center justify-center p-2 relative">
-                            <img src="${imgUrl}" class="max-w-full max-h-full object-contain drop-shadow-md">
+                            <!-- AÑADIDO: onerror para manejar imágenes no subidas aún -->
+                            <img src="${imgUrl}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300?text=Falta+Imagen';" class="max-w-full max-h-full object-contain drop-shadow-md">
                             <span class="absolute top-2 right-2 bg-white/80 backdrop-blur text-brand text-[9px] px-1.5 py-0.5 rounded font-bold">${prod.Codigo}</span>
                         </div>
                         <div class="p-3">
-                            <span class="text-[10px] text-gray-500 font-medium uppercase truncate block">${prod.Restaurante}</span>
+                            <span class="text-[10px] text-gray-500 font-medium uppercase truncate block">${prod.Restaurante || ''}</span>
                             <h3 class="text-sm font-bold text-gray-800 leading-tight mb-1 truncate">${prod.Nombre}</h3>
                             <div class="flex justify-between items-center mt-2">
                                 <p class="text-brand font-bold text-sm">Bs ${precioFmt}</p>
@@ -593,7 +592,13 @@
             const img2 = imagenes[1];
             const img3 = imagenes[2];
 
-            document.getElementById('prod-img-main').src = img1 || "https://via.placeholder.com/400?text=Sin+Imagen";
+            const imgMain = document.getElementById('prod-img-main');
+            imgMain.src = img1 || "https://via.placeholder.com/400?text=Sin+Imagen";
+            // AÑADIDO: Si la imagen no carga, colocar placeholder
+            imgMain.onerror = function() { 
+                this.onerror = null; 
+                this.src = "https://via.placeholder.com/400?text=Falta+Imagen"; 
+            };
 
             const gallery = document.getElementById('prod-gallery');
             gallery.innerHTML = ''; 
@@ -603,6 +608,10 @@
                 const thumb = document.createElement('img');
                 thumb.src = imgUrl;
                 thumb.className = `w-14 h-14 rounded-xl object-contain img-gallery-thumb shadow-sm bg-white p-1 border border-gray-100 ${index === 0 ? 'active' : ''}`;
+                
+                // AÑADIDO: Ocultar miniatura si la foto no existe en github
+                thumb.onerror = function() { this.style.display = 'none'; };
+
                 thumb.onclick = () => {
                     document.getElementById('prod-img-main').src = imgUrl;
                     document.querySelectorAll('.img-gallery-thumb').forEach(t => t.classList.remove('active'));
@@ -725,7 +734,8 @@
                     const div = document.createElement('div');
                     div.className = "bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100";
                     div.innerHTML = `
-                        <img src="${img}" class="w-16 h-16 object-contain bg-gray-50 rounded-lg">
+                        <!-- AÑADIDO: Control onerror en carrito -->
+                        <img src="${img}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Falta+Imagen';" class="w-16 h-16 object-contain bg-gray-50 rounded-lg">
                         <div class="flex-1">
                             <h4 class="font-bold text-gray-800 text-sm truncate">${prod.Nombre}</h4>
                             <p class="text-brand font-bold text-sm">Bs ${precio.toFixed(2)}</p>
