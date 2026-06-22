@@ -1,0 +1,795 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Delivery App - Pedidos rápidos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PapaParse for parsing CSV from Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#ed0046', 
+                            dark: '#c40038',
+                            light: '#ff3370'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            max-height: 896px;
+            background-color: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 415px) {
+            #app-container {
+                height: 90vh;
+                border-radius: 40px;
+                border: 8px solid #333;
+            }
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Animaciones */
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        .slide-down { animation: slideDown 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes slideDown { from { transform: translateY(0); } to { transform: translateY(100%); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
+        #sidebar.open { transform: translateX(0); }
+
+        .hero-clip {
+            position: relative;
+            overflow: hidden;
+            background-color: #ed0046;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        .img-gallery-thumb.active { border: 2px solid #ed0046; }
+        
+        .whatsapp-btn-img {
+            transition: transform 0.2s;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+        }
+        .whatsapp-btn-img:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- HEADER PRINCIPAL -->
+        <header class="bg-brand text-white p-4 flex justify-between items-center z-10 shadow-md relative">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-p text-2xl font-bold italic"></i>
+                <span class="text-xl font-bold italic tracking-wide">PedidosYa</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="ciudad-indicador" class="text-xs bg-white/20 px-2 py-1 rounded-full"><i class="fa-solid fa-location-dot"></i> La Paz</span>
+                <button onclick="toggleMenu()" class="text-white text-2xl focus:outline-none">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MENU DESPLEGABLE (SIDEBAR - CIUDADES) -->
+        <div id="sidebar" class="absolute top-0 right-0 w-64 h-full bg-white shadow-2xl z-50 flex flex-col">
+            <div class="bg-brand text-white p-6 flex justify-between items-center">
+                <span class="font-bold text-lg"><i class="fa-solid fa-map-location-dot"></i> Ciudades</span>
+                <button onclick="toggleMenu()" class="text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 flex flex-col gap-2 text-gray-700">
+                <p class="text-xs text-gray-400 mb-2 font-semibold uppercase">Selecciona tu ubicación</p>
+                <button onclick="cambiarCiudad('La Paz')" class="flex items-center gap-3 p-3 hover:bg-red-50 rounded-lg text-left font-medium w-full border border-gray-100">
+                    <i class="fa-solid fa-mountain-city text-brand"></i> La Paz
+                </button>
+                <button onclick="cambiarCiudad('Santa Cruz')" class="flex items-center gap-3 p-3 hover:bg-red-50 rounded-lg text-left font-medium w-full border border-gray-100">
+                    <i class="fa-solid fa-tree-city text-brand"></i> Santa Cruz
+                </button>
+                <button onclick="cambiarCiudad('Cochabamba')" class="flex items-center gap-3 p-3 hover:bg-red-50 rounded-lg text-left font-medium w-full border border-gray-100">
+                    <i class="fa-solid fa-city text-brand"></i> Cochabamba
+                </button>
+                <button onclick="cambiarCiudad('Todas')" class="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg text-left font-medium w-full border border-gray-100 mt-4">
+                    <i class="fa-solid fa-globe text-gray-500"></i> Ver todo el país
+                </button>
+            </div>
+
+            <!-- Agente Móvil -->
+            <div class="mt-auto p-4 border-t border-gray-100 bg-gray-50">
+                <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">¿Necesitas ayuda?</p>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center text-brand">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">Agente Móvil</p>
+                        <p class="text-xs text-gray-500">+591 77790254</p>
+                    </div>
+                </div>
+                <button onclick="contactarAgente()" class="w-full bg-[#25D366] text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#20bd5a] transition">
+                    <i class="fa-brands fa-whatsapp text-lg"></i> Contactar soporte
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTENIDO PRINCIPAL (DASHBOARD) -->
+        <main id="main-dashboard" class="flex-1 overflow-y-auto hide-scrollbar pb-24 bg-white block">
+            
+            <div class="hero-clip px-4 pt-4 pb-8">
+                <div class="relative z-10">
+                    <h1 class="text-white font-bold text-2xl italic leading-tight uppercase">
+                        Lo que necesitas,<br>al instante
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Buscador por Código -->
+            <div class="px-4 -mt-6 relative z-20">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-2 flex items-center justify-between">
+                    <input type="text" id="codigoInput" placeholder="Buscá por nombre o código" 
+                           class="w-full py-3 px-4 text-gray-700 outline-none rounded-xl font-medium"
+                           onkeypress="handleEnter(event)">
+                    <button onclick="buscarProducto()" class="bg-brand-50 text-brand p-3 rounded-xl hover:bg-brand hover:text-white transition-colors duration-200">
+                        <i class="fa-solid fa-magnifying-glass text-xl"></i>
+                    </button>
+                </div>
+                <p id="error-msg" class="text-brand text-xs text-center mt-2 hidden font-medium">No se encontraron resultados.</p>
+            </div>
+
+            <!-- Categorias (Botones funcionales) -->
+            <div class="px-4 mt-8">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-gray-800 font-bold">¿Qué querés pedir hoy?</h2>
+                    <button onclick="filtrarCategoria('Todas')" class="text-xs text-brand font-medium">Ver todo</button>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="filtrarCategoria('Restaurantes')" class="bg-white border border-gray-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-red-50 hover:border-brand transition">
+                        <i class="fa-solid fa-bag-shopping text-3xl text-brand"></i>
+                        <span class="text-[11px] font-medium text-gray-700">Restaurantes</span>
+                    </button>
+                    <button onclick="filtrarCategoria('Supermercados')" class="bg-white border border-gray-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-red-50 hover:border-brand transition">
+                        <i class="fa-solid fa-cart-shopping text-3xl text-brand"></i>
+                        <span class="text-[11px] font-medium text-gray-700">Supermercados</span>
+                    </button>
+                    <button onclick="filtrarCategoria('Tiendas')" class="bg-white border border-gray-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-red-50 hover:border-brand transition">
+                        <i class="fa-solid fa-motorcycle text-3xl text-brand"></i>
+                        <span class="text-[11px] font-medium text-gray-700">Tiendas</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Listado de Productos -->
+            <div class="px-4 mt-8 mb-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <h2 class="text-gray-800 font-bold text-lg" id="titulo-listado">Recomendados</h2>
+                    <span id="badge-categoria" class="hidden bg-brand text-white text-[10px] px-2 py-0.5 rounded-full uppercase font-bold"></span>
+                </div>
+                
+                <!-- Contenedor dinámico de productos -->
+                <div id="lista-productos" class="grid grid-cols-2 gap-4">
+                    <!-- Se llenará con JS -->
+                </div>
+
+                <!-- Loading indicator oculto -->
+                <div id="loading-indicator" class="hidden text-center py-8 col-span-2">
+                    <i class="fa-solid fa-spinner fa-spin text-brand text-3xl"></i>
+                    <p class="text-sm text-gray-500 mt-2">Cargando catálogo...</p>
+                </div>
+                <div id="empty-state" class="hidden text-center py-8 col-span-2 text-gray-400">
+                    <i class="fa-solid fa-box-open text-4xl mb-2"></i>
+                    <p>No hay productos en esta categoría o ciudad.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- VISTA DEL CARRITO (Oculta por defecto) -->
+        <div id="cart-view" class="absolute top-0 left-0 w-full h-full bg-gray-50 z-40 hidden flex-col">
+            <header class="bg-white text-gray-800 p-4 flex justify-between items-center shadow-sm relative z-10">
+                <span class="text-lg font-bold">Mi Carrito</span>
+                <button onclick="navInicio()" class="text-gray-600 text-xl w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            
+            <div class="flex-1 overflow-y-auto p-4 pb-32">
+                <div id="cart-items" class="flex flex-col gap-3">
+                    <!-- Items del carrito JS -->
+                </div>
+                <div id="cart-empty" class="text-center py-20 text-gray-400">
+                    <i class="fa-solid fa-cart-arrow-down text-5xl mb-4 text-gray-300"></i>
+                    <p class="font-medium">Tu carrito está vacío</p>
+                    <button onclick="navInicio()" class="mt-4 text-brand font-bold">Explorar productos</button>
+                </div>
+            </div>
+
+            <!-- Footer del carrito con Totales -->
+            <div class="absolute bottom-0 w-full bg-white p-4 border-t border-gray-200 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <span class="text-gray-500 font-medium">Total:</span>
+                    <span class="text-2xl font-bold text-gray-900" id="cart-total">Bs 0.00</span>
+                </div>
+                <button onclick="pedirCarritoPorWhatsApp()" class="w-full bg-brand text-white font-bold py-4 rounded-xl text-lg shadow-lg hover:bg-brand-dark flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-xl"></i> Confirmar y Pedir
+                </button>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around items-center py-3 pb-6 z-30 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
+            <button onclick="navInicio()" class="flex flex-col items-center text-brand" id="nav-btn-inicio">
+                <i class="fa-solid fa-house text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">Inicio</span>
+            </button>
+            <button onclick="navBuscar()" class="flex flex-col items-center text-gray-400 hover:text-brand transition" id="nav-btn-buscar">
+                <i class="fa-solid fa-magnifying-glass text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">Buscar</span>
+            </button>
+            <button onclick="navCarrito()" class="flex flex-col items-center text-gray-400 hover:text-brand transition relative" id="nav-btn-carrito">
+                <div class="relative">
+                    <i class="fa-solid fa-cart-shopping text-xl mb-1"></i>
+                    <span id="cart-badge" class="absolute -top-1 -right-2 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full hidden">0</span>
+                </div>
+                <span class="text-[10px] font-medium">Carrito</span>
+            </button>
+        </nav>
+
+        <!-- VISTA DEL PRODUCTO -->
+        <div id="product-view" class="absolute top-0 left-0 w-full h-full bg-white z-50 hidden flex-col">
+            
+            <!-- Cabecera Producto: Imagen arreglada (object-contain) -->
+            <div class="relative w-full h-72 bg-white flex items-center justify-center border-b border-gray-100 p-8 pt-12">
+                <button onclick="cerrarProducto()" class="absolute top-4 left-4 z-10 bg-white border border-gray-200 p-3 rounded-full shadow-md text-gray-800 hover:bg-gray-50">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="absolute top-4 right-4 z-10 flex gap-2">
+                    <span id="prod-tag-ciudad" class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md font-medium"><i class="fa-solid fa-location-dot"></i> La Paz</span>
+                    <span id="prod-tag-cat" class="bg-brand-50 text-brand text-xs px-2 py-1 rounded-md font-medium">Cat</span>
+                </div>
+                <img id="prod-img-main" src="" alt="Producto" class="max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300">
+            </div>
+
+            <!-- Contenido Producto -->
+            <div class="flex-1 overflow-y-auto bg-white p-5 pb-32">
+                
+                <!-- Galeria miniaturas -->
+                <div class="flex gap-3 justify-center mb-6" id="prod-gallery">
+                    <!-- Inyectadas con JS -->
+                </div>
+
+                <span id="prod-restaurant" class="text-brand text-sm font-bold tracking-wider uppercase mb-1 block">Restaurante Name</span>
+                <h2 id="prod-name" class="text-2xl font-bold text-gray-800 leading-tight mb-2">Nombre del Producto</h2>
+                
+                <p class="text-3xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Bs <span id="prod-price">0.00</span></p>
+                
+                <h3 class="font-bold text-gray-800 mb-2">Descripción del detalle</h3>
+                <p id="prod-desc" class="text-gray-500 text-sm leading-relaxed mb-6">
+                    Descripción del producto aquí...
+                </p>
+            </div>
+
+            <!-- Área de Botones Fija Abajo -->
+            <div class="absolute bottom-0 w-full bg-white p-4 pt-2 border-t border-gray-100 shadow-[0_-15px_30px_rgba(0,0,0,0.06)] flex flex-col gap-3 z-20">
+                
+                <!-- Botón Añadir a Carrito -->
+                <button id="btn-add-cart" onclick="agregarProductoActualAlCarrito()" class="w-full bg-white border-2 border-brand text-brand font-bold py-3.5 rounded-xl text-lg hover:bg-red-50 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cart-plus"></i> Añadir al Carrito
+                </button>
+
+                <!-- FOTÓN GIGANTE EN PNG PARA PEDIR DIRECTO -->
+                <button onclick="pedirDirectoPorWhatsApp()" class="w-full relative flex items-center justify-center whatsapp-btn-img mt-1 mb-2">
+                    <!-- Usamos una imagen que parezca un botón grande de WhatsApp -->
+                    <img src="WhatsApp.png" alt="WhatsApp" class="w-12 h-12 absolute left-4 drop-shadow-md z-10">
+                    <div class="w-full bg-[#25D366] text-white font-bold py-4 pl-12 pr-4 rounded-xl text-xl shadow-lg text-center flex items-center justify-center border-b-4 border-[#128C7E]">
+                        ¡Pedir Ahora!
+                    </div>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
+    <script>
+        // =====================================================================
+        // CONFIGURACIÓN DE GOOGLE SHEETS
+        // =====================================================================
+        // Pega tu enlace CSV aquí:
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRn5mxjbNiVH2JjxXBgK_8v06kJ4-2rSsCOzP3Bhy-KMwfzso_F5dWu4FNw_ed1ObJUCK1xC08q5Gn7/pub?output=csv"; 
+
+        // Número del agente móvil
+        const AGENTE_WHATSAPP = "59177790254"; 
+
+        // =====================================================================
+        // CONFIGURACIÓN DE IMÁGENES AUTOMÁTICAS POR CÓDIGO
+        // =====================================================================
+        // Cambia a 'true' si usas un hosting tradicional (no Drive) para tus imágenes
+        const USAR_IMAGENES_POR_CODIGO = true; 
+        const URL_HOSTING_IMAGENES = ""; 
+        const EXTENSION_IMAGEN = ".jpg"; // o .png
+        // =====================================================================
+
+        let productosBaseDeDatos = [];
+        let productoActual = null;
+        let ciudadActual = 'La Paz'; // Ciudad por defecto
+        let categoriaActual = 'Todas'; // Categoría por defecto
+        let carrito = []; // Arreglo del carrito
+
+        // Datos de respaldo por si no hay Sheets
+        const fallbackData = [
+            { Codigo: "111", Nombre: "Hamburguesa Clásica", Restaurante: "Burger Factory", Descripcion: "Deliciosa hamburguesa con queso.", Precio: "35", Ciudad: "La Paz", Categoria: "Restaurantes", Imagen1: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+            { Codigo: "222", Nombre: "Sushi Roll", Restaurante: "Sakura", Descripcion: "Roll premium de salmón.", Precio: "65.50", Ciudad: "Santa Cruz", Categoria: "Restaurantes", Imagen1: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+            { Codigo: "333", Nombre: "Coca Cola 2L", Restaurante: "Hipermaxi", Descripcion: "Gaseosa fría.", Precio: "15", Ciudad: "La Paz", Categoria: "Supermercados", Imagen1: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+            { Codigo: "444", Nombre: "Auriculares Bluetooth", Restaurante: "Tech Store", Descripcion: "Audífonos inalámbricos con batería larga.", Precio: "150", Ciudad: "Cochabamba", Categoria: "Tiendas", Imagen1: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+            { Codigo: "555", Nombre: "Pizza Pepperoni", Restaurante: "Pizzería Roma", Descripcion: "Pizza familiar.", Precio: "70", Ciudad: "La Paz", Categoria: "Restaurantes", Imagen1: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ce?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" }
+        ];
+
+        // Limpiar URL de Drive
+        function fixDriveUrl(url) {
+            if (!url) return "";
+            if (url.includes("drive.google.com/file/d/")) {
+                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                }
+            }
+            return url; 
+        }
+
+        // Cargar datos
+        window.onload = function() {
+            if (GOOGLE_SHEET_CSV_URL !== "") {
+                document.getElementById('loading-indicator').classList.remove('hidden');
+                Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                    download: true,
+                    header: true,
+                    complete: function(results) {
+                        productosBaseDeDatos = results.data.filter(p => p.Nombre); // Filtrar filas vacías
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        renderProductos();
+                    },
+                    error: function(error) {
+                        productosBaseDeDatos = fallbackData;
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        renderProductos();
+                    }
+                });
+            } else {
+                productosBaseDeDatos = fallbackData;
+                renderProductos();
+            }
+        };
+
+        // =====================================================================
+        // LÓGICA DE FILTROS Y RENDERIZADO
+        // =====================================================================
+
+        // Función para obtener las URLs de las imágenes
+        function obtenerImagenesProducto(prod) {
+            if (USAR_IMAGENES_POR_CODIGO && prod.Codigo) {
+                // Autogenera los enlaces en base al código: ej 456512A.jpg
+                return [
+                    `${URL_HOSTING_IMAGENES}${prod.Codigo}A${EXTENSION_IMAGEN}`,
+                    `${URL_HOSTING_IMAGENES}${prod.Codigo}B${EXTENSION_IMAGEN}`,
+                    `${URL_HOSTING_IMAGENES}${prod.Codigo}C${EXTENSION_IMAGEN}`
+                ];
+            } else {
+                // Comportamiento normal por enlaces de Drive en el Sheet
+                return [
+                    fixDriveUrl(prod.Imagen1),
+                    fixDriveUrl(prod.Imagen2),
+                    fixDriveUrl(prod.Imagen3)
+                ];
+            }
+        }
+
+        function cambiarCiudad(ciudad) {
+            ciudadActual = ciudad;
+            document.getElementById('ciudad-indicador').innerHTML = `<i class="fa-solid fa-location-dot"></i> ${ciudad}`;
+            toggleMenu(); // Cerrar sidebar
+            renderProductos();
+        }
+
+        function filtrarCategoria(categoria) {
+            categoriaActual = categoria;
+            const badge = document.getElementById('badge-categoria');
+            if(categoria === 'Todas'){
+                badge.classList.add('hidden');
+                document.getElementById('titulo-listado').innerText = "Recomendados";
+            } else {
+                badge.innerText = categoria;
+                badge.classList.remove('hidden');
+                document.getElementById('titulo-listado').innerText = "Catálogo";
+            }
+            renderProductos();
+        }
+
+        function renderProductos(busquedaQuery = "") {
+            const listado = document.getElementById('lista-productos');
+            const emptyState = document.getElementById('empty-state');
+            listado.innerHTML = '';
+
+            let filtrados = productosBaseDeDatos;
+
+            // Filtro por ciudad
+            if (ciudadActual !== 'Todas') {
+                filtrados = filtrados.filter(p => p.Ciudad === ciudadActual);
+            }
+
+            // Filtro por categoria
+            if (categoriaActual !== 'Todas') {
+                filtrados = filtrados.filter(p => p.Categoria === categoriaActual);
+            }
+
+            // Filtro por búsqueda (código o nombre)
+            if (busquedaQuery !== "") {
+                const query = busquedaQuery.toLowerCase();
+                filtrados = filtrados.filter(p => 
+                    (p.Codigo && p.Codigo.toLowerCase().includes(query)) || 
+                    (p.Nombre && p.Nombre.toLowerCase().includes(query))
+                );
+            }
+
+            if (filtrados.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtrados.forEach(prod => {
+                    const imagenes = obtenerImagenesProducto(prod);
+                    const imgUrl = imagenes[0] || "https://via.placeholder.com/300?text=Sin+Imagen";
+                    // Asegurar que precio sea numero
+                    const precioFmt = parseFloat(prod.Precio || 0).toFixed(2);
+                    
+                    const card = document.createElement('div');
+                    card.className = "bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition cursor-pointer fade-in";
+                    card.onclick = () => mostrarVistaProducto(prod);
+                    card.innerHTML = `
+                        <div class="h-32 bg-gray-50 flex items-center justify-center p-2 relative">
+                            <img src="${imgUrl}" class="max-w-full max-h-full object-contain drop-shadow-md">
+                            <span class="absolute top-2 right-2 bg-white/80 backdrop-blur text-brand text-[9px] px-1.5 py-0.5 rounded font-bold">${prod.Codigo}</span>
+                        </div>
+                        <div class="p-3">
+                            <span class="text-[10px] text-gray-500 font-medium uppercase truncate block">${prod.Restaurante}</span>
+                            <h3 class="text-sm font-bold text-gray-800 leading-tight mb-1 truncate">${prod.Nombre}</h3>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-brand font-bold text-sm">Bs ${precioFmt}</p>
+                                <button onclick="event.stopPropagation(); agregarDirectoAlCarrito('${prod.Codigo}')" class="bg-brand-50 text-brand w-7 h-7 rounded-full flex items-center justify-center hover:bg-brand hover:text-white transition">
+                                    <i class="fa-solid fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    listado.appendChild(card);
+                });
+            }
+        }
+
+        // Buscador
+        function handleEnter(e) { if (e.key === 'Enter') buscarProducto(); }
+        function buscarProducto() {
+            const query = document.getElementById('codigoInput').value.trim();
+            renderProductos(query);
+            
+            // Si el buscador coincide exactamente con UN código, abrir producto directo
+            const matchExacto = productosBaseDeDatos.find(p => p.Codigo === query);
+            if (matchExacto) {
+                document.getElementById('codigoInput').value = ''; // limpiar
+                mostrarVistaProducto(matchExacto);
+                renderProductos(); // resetear lista
+            }
+        }
+
+        // Menu lateral
+        function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        // =====================================================================
+        // NAVEGACIÓN INFERIOR
+        // =====================================================================
+        function resetNav() {
+            ['nav-btn-inicio', 'nav-btn-buscar', 'nav-btn-carrito'].forEach(id => {
+                document.getElementById(id).classList.remove('text-brand');
+                document.getElementById(id).classList.add('text-gray-400');
+            });
+            const cartView = document.getElementById('cart-view');
+            cartView.classList.add('hidden');
+            cartView.style.display = 'none'; // ESTO CORRIGE QUE EL BOTÓN CERRAR FUNCIONE
+            
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            cerrarProducto(true); // Ocultar producto sin animación
+        }
+
+        function navInicio() {
+            resetNav();
+            document.getElementById('nav-btn-inicio').classList.add('text-brand');
+            document.getElementById('nav-btn-inicio').classList.remove('text-gray-400');
+        }
+
+        function navBuscar() {
+            navInicio(); // Mismo dashboard
+            document.getElementById('nav-btn-buscar').classList.add('text-brand');
+            document.getElementById('codigoInput').focus();
+        }
+
+        function navCarrito() {
+            resetNav();
+            document.getElementById('nav-btn-carrito').classList.add('text-brand');
+            document.getElementById('nav-btn-carrito').classList.remove('text-gray-400');
+            
+            document.getElementById('main-dashboard').classList.add('hidden');
+            const cartView = document.getElementById('cart-view');
+            cartView.classList.remove('hidden');
+            cartView.style.display = 'flex';
+            renderVistaCarrito();
+        }
+
+        // =====================================================================
+        // VISTA DEL PRODUCTO
+        // =====================================================================
+
+        function mostrarVistaProducto(producto) {
+            productoActual = producto;
+            
+            document.getElementById('prod-name').innerText = producto.Nombre || "Producto";
+            document.getElementById('prod-restaurant').innerText = producto.Restaurante || "Local";
+            document.getElementById('prod-desc').innerText = producto.Descripcion || "Sin descripción detallada.";
+            document.getElementById('prod-tag-ciudad').innerHTML = `<i class="fa-solid fa-location-dot"></i> ${producto.Ciudad || 'N/A'}`;
+            document.getElementById('prod-tag-cat').innerText = producto.Categoria || 'N/A';
+            
+            const precioNum = parseFloat(producto.Precio || 0);
+            document.getElementById('prod-price').innerText = precioNum.toFixed(2);
+
+            const imagenes = obtenerImagenesProducto(producto);
+            const img1 = imagenes[0];
+            const img2 = imagenes[1];
+            const img3 = imagenes[2];
+
+            document.getElementById('prod-img-main').src = img1 || "https://via.placeholder.com/400?text=Sin+Imagen";
+
+            const gallery = document.getElementById('prod-gallery');
+            gallery.innerHTML = ''; 
+            
+            const imgs = [img1, img2, img3].filter(url => url);
+            imgs.forEach((imgUrl, index) => {
+                const thumb = document.createElement('img');
+                thumb.src = imgUrl;
+                thumb.className = `w-14 h-14 rounded-xl object-contain img-gallery-thumb shadow-sm bg-white p-1 border border-gray-100 ${index === 0 ? 'active' : ''}`;
+                thumb.onclick = () => {
+                    document.getElementById('prod-img-main').src = imgUrl;
+                    document.querySelectorAll('.img-gallery-thumb').forEach(t => t.classList.remove('active'));
+                    thumb.classList.add('active');
+                };
+                gallery.appendChild(thumb);
+            });
+
+            const view = document.getElementById('product-view');
+            view.classList.remove('hidden', 'slide-down');
+            view.classList.add('slide-up');
+            view.style.display = 'flex';
+        }
+
+        function cerrarProducto(inmediato = false) {
+            const view = document.getElementById('product-view');
+            if (inmediato) {
+                view.classList.add('hidden');
+                view.style.display = 'none';
+                productoActual = null;
+                return;
+            }
+            view.classList.remove('slide-up');
+            view.classList.add('slide-down');
+            setTimeout(() => {
+                view.classList.add('hidden');
+                view.style.display = 'none';
+                productoActual = null;
+            }, 300);
+        }
+
+        // =====================================================================
+        // CARRITO DE COMPRAS
+        // =====================================================================
+
+        function agregarDirectoAlCarrito(codigo) {
+            const prod = productosBaseDeDatos.find(p => p.Codigo === codigo);
+            if(prod) {
+                productoActual = prod;
+                agregarProductoActualAlCarrito();
+                productoActual = null; // reset
+            }
+        }
+
+        function agregarProductoActualAlCarrito() {
+            if (!productoActual) return;
+            
+            // Buscar si ya existe
+            const itemExistente = carrito.find(item => item.producto.Codigo === productoActual.Codigo);
+            if (itemExistente) {
+                itemExistente.cantidad += 1;
+            } else {
+                carrito.push({ producto: productoActual, cantidad: 1 });
+            }
+            
+            actualizarBurbujaCarrito();
+            
+            // Feedback visual
+            const btn = document.getElementById('btn-add-cart');
+            if(btn){
+                const htmlOriginal = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> ¡Añadido!`;
+                btn.classList.replace('text-brand', 'text-green-500');
+                btn.classList.replace('border-brand', 'border-green-500');
+                setTimeout(() => {
+                    btn.innerHTML = htmlOriginal;
+                    btn.classList.replace('text-green-500', 'text-brand');
+                    btn.classList.replace('border-green-500', 'border-brand');
+                }, 1500);
+            }
+        }
+
+        function actualizarBurbujaCarrito() {
+            const badge = document.getElementById('cart-badge');
+            const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+            if (totalItems > 0) {
+                badge.innerText = totalItems;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            if (!document.getElementById('cart-view').classList.contains('hidden')) {
+                renderVistaCarrito();
+            }
+        }
+
+        function modificarCantidad(codigo, cambio) {
+            const index = carrito.findIndex(item => item.producto.Codigo === codigo);
+            if (index !== -1) {
+                carrito[index].cantidad += cambio;
+                if (carrito[index].cantidad <= 0) {
+                    carrito.splice(index, 1); // Eliminar si es 0
+                }
+                actualizarBurbujaCarrito();
+            }
+        }
+
+        function renderVistaCarrito() {
+            const list = document.getElementById('cart-items');
+            const empty = document.getElementById('cart-empty');
+            const labelTotal = document.getElementById('cart-total');
+            list.innerHTML = '';
+
+            let totalSuma = 0;
+
+            if (carrito.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+                
+                carrito.forEach(item => {
+                    const prod = item.producto;
+                    const precio = parseFloat(prod.Precio || 0);
+                    const subtotal = precio * item.cantidad;
+                    totalSuma += subtotal;
+                    
+                    const imagenes = obtenerImagenesProducto(prod);
+                    const img = imagenes[0] || "https://via.placeholder.com/150?text=IMG";
+
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100";
+                    div.innerHTML = `
+                        <img src="${img}" class="w-16 h-16 object-contain bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800 text-sm truncate">${prod.Nombre}</h4>
+                            <p class="text-brand font-bold text-sm">Bs ${precio.toFixed(2)}</p>
+                        </div>
+                        <div class="flex items-center gap-3 bg-gray-100 rounded-full px-2 py-1">
+                            <button onclick="modificarCantidad('${prod.Codigo}', -1)" class="w-6 h-6 bg-white rounded-full text-gray-600 shadow-sm flex items-center justify-center font-bold">-</button>
+                            <span class="text-sm font-bold text-gray-800 w-4 text-center">${item.cantidad}</span>
+                            <button onclick="modificarCantidad('${prod.Codigo}', 1)" class="w-6 h-6 bg-white rounded-full text-brand shadow-sm flex items-center justify-center font-bold">+</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+
+            labelTotal.innerText = `Bs ${totalSuma.toFixed(2)}`;
+        }
+
+        // =====================================================================
+        // ENVÍO DE PEDIDOS A WHATSAPP
+        // =====================================================================
+
+        function contactarAgente() {
+            const mensaje = "Tengo problemas para elegir un pedido.";
+            abrirWhatsApp(mensaje);
+        }
+
+        function pedirDirectoPorWhatsApp() {
+            if (!productoActual) return;
+            const precio = parseFloat(productoActual.Precio || 0).toFixed(2);
+            const mensaje = `¡Hola! Quiero hacer un pedido rápido:\n\n` +
+                            `📦 *CÓDIGO:* ${productoActual.Codigo}\n` +
+                            `🍔 *Producto:* ${productoActual.Nombre}\n` +
+                            `📍 *Ciudad:* ${productoActual.Ciudad}\n` +
+                            `💰 *Precio:* Bs ${precio}\n\n` +
+                            `¿Me indicas los métodos de pago y el tiempo de entrega?`;
+            abrirWhatsApp(mensaje);
+        }
+
+        function pedirCarritoPorWhatsApp() {
+            if (carrito.length === 0) {
+                alert("El carrito está vacío");
+                return;
+            }
+
+            let mensaje = `¡Hola! Quiero hacer el siguiente pedido múltiple:\n\n`;
+            let total = 0;
+
+            carrito.forEach(item => {
+                const prod = item.producto;
+                const precio = parseFloat(prod.Precio || 0);
+                const subtotal = precio * item.cantidad;
+                total += subtotal;
+                
+                mensaje += `🔸 ${item.cantidad}x ${prod.Nombre} (Bs ${precio.toFixed(2)} c/u)\n`;
+                mensaje += `   *Código:* ${prod.Codigo} | ${prod.Ciudad}\n\n`;
+            });
+
+            mensaje += `🛒 *TOTAL A PAGAR:* Bs ${total.toFixed(2)}\n\n`;
+            mensaje += `Por favor, confírmame el pedido y los métodos de pago.`;
+
+            abrirWhatsApp(mensaje);
+        }
+
+        function abrirWhatsApp(mensaje) {
+            const numero = AGENTE_WHATSAPP;
+            const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+        }
+
+    </script>
+</body>
+</html>
