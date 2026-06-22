@@ -291,7 +291,8 @@
                     <span id="prod-tag-ciudad" class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md font-medium"><i class="fa-solid fa-location-dot"></i> La Paz</span>
                     <span id="prod-tag-cat" class="bg-brand-50 text-brand text-xs px-2 py-1 rounded-md font-medium">Cat</span>
                 </div>
-                <img id="prod-img-main" src="" alt="Producto" class="max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300">
+                <!-- Añadido onerror -->
+                <img id="prod-img-main" src="" alt="Producto" class="max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300" onerror="this.src='https://via.placeholder.com/400?text=Sin+Imagen'">
             </div>
 
             <!-- Contenido Producto -->
@@ -324,7 +325,7 @@
                 <!-- FOTÓN GIGANTE EN PNG PARA PEDIR DIRECTO -->
                 <button onclick="pedirDirectoPorWhatsApp()" class="w-full relative flex items-center justify-center whatsapp-btn-img mt-1 mb-2">
                     <!-- Usamos una imagen que parezca un botón grande de WhatsApp -->
-                    <img src="WhatsApp.png" alt="WhatsApp" class="w-12 h-12 absolute left-4 drop-shadow-md z-10">
+                    <img src="WhatsApp.png" alt="WhatsApp" class="w-12 h-12 absolute left-4 drop-shadow-md z-10" onerror="this.style.display='none'">
                     <div class="w-full bg-[#25D366] text-white font-bold py-4 pl-12 pr-4 rounded-xl text-xl shadow-lg text-center flex items-center justify-center border-b-4 border-[#128C7E]">
                         ¡Pedir Ahora!
                     </div>
@@ -352,11 +353,11 @@
         const USAR_IMAGENES_POR_CODIGO = true; 
         
         // MODIFICACIÓN APLICADA: 
-        // 1. Usar raw.githubusercontent.com en lugar del dominio normal de github.com
-        // 2. Añadir la barra diagonal '/' al final para que concatene correctamente con el código de la imagen
-        const URL_HOSTING_IMAGENES = "https://raw.githubusercontent.com/InstitucionFinancieradeDesarrollo/pedidosya/c6435f464a3a1fce5fd5c703f08011a0c0b0e167/comida/"; 
+        // Cambiamos el hash de commit estático a "main" (o "master" según como se llame tu rama principal en GitHub)
+        // De este modo buscará siempre las imágenes en la versión más reciente del repositorio.
+        const URL_HOSTING_IMAGENES = "https://raw.githubusercontent.com/InstitucionFinancieradeDesarrollo/pedidosya/main/comida/"; 
         
-        const EXTENSION_IMAGEN = ".png"; // Asegúrate de que las imágenes en tu carpeta sean .png, si son .jpg cámbialo a ".jpg"
+        const EXTENSION_IMAGEN = ".png"; // Asegúrate de que las imágenes en tu carpeta sean .png
         // =====================================================================
 
         let productosBaseDeDatos = [];
@@ -495,7 +496,8 @@
                     card.onclick = () => mostrarVistaProducto(prod);
                     card.innerHTML = `
                         <div class="h-32 bg-gray-50 flex items-center justify-center p-2 relative">
-                            <img src="${imgUrl}" class="max-w-full max-h-full object-contain drop-shadow-md">
+                            <!-- Agregado onerror para fallback de imagen principal -->
+                            <img src="${imgUrl}" class="max-w-full max-h-full object-contain drop-shadow-md" onerror="this.src='https://via.placeholder.com/300?text=Sin+Imagen'">
                             <span class="absolute top-2 right-2 bg-white/80 backdrop-blur text-brand text-[9px] px-1.5 py-0.5 rounded font-bold">${prod.Codigo}</span>
                         </div>
                         <div class="p-3">
@@ -603,6 +605,12 @@
                 const thumb = document.createElement('img');
                 thumb.src = imgUrl;
                 thumb.className = `w-14 h-14 rounded-xl object-contain img-gallery-thumb shadow-sm bg-white p-1 border border-gray-100 ${index === 0 ? 'active' : ''}`;
+                
+                // --- Agregado: Oculta la miniatura si no encuentra la imagen (ej: si solo hay imagen A pero no B ni C) ---
+                thumb.onerror = function() {
+                    this.style.display = 'none';
+                };
+                
                 thumb.onclick = () => {
                     document.getElementById('prod-img-main').src = imgUrl;
                     document.querySelectorAll('.img-gallery-thumb').forEach(t => t.classList.remove('active'));
@@ -725,7 +733,8 @@
                     const div = document.createElement('div');
                     div.className = "bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100";
                     div.innerHTML = `
-                        <img src="${img}" class="w-16 h-16 object-contain bg-gray-50 rounded-lg">
+                        <!-- Agregado onerror para ocultar errores en el carrito -->
+                        <img src="${img}" class="w-16 h-16 object-contain bg-gray-50 rounded-lg" onerror="this.src='https://via.placeholder.com/150?text=Sin+Imagen'">
                         <div class="flex-1">
                             <h4 class="font-bold text-gray-800 text-sm truncate">${prod.Nombre}</h4>
                             <p class="text-brand font-bold text-sm">Bs ${precio.toFixed(2)}</p>
