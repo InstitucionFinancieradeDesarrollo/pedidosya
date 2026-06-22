@@ -83,14 +83,6 @@
         #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
         #sidebar.open { transform: translateX(0); }
 
-        .hero-clip {
-            position: relative;
-            overflow: hidden;
-            background-color: #ed0046;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-        }
-
         .img-gallery-thumb.active { border: 2px solid #ed0046; }
         
         .whatsapp-btn-img {
@@ -161,17 +153,14 @@
         <!-- CONTENIDO PRINCIPAL (DASHBOARD) -->
         <main id="main-dashboard" class="flex-1 overflow-y-auto hide-scrollbar pb-24 bg-white block">
             
-            <div class="hero-clip px-4 pt-4 pb-8">
-                <div class="relative z-10">
-                    <h1 class="text-white font-bold text-2xl italic leading-tight uppercase">
-                        Lo que necesitas,<br>al instante
-                    </h1>
-                </div>
+            <!-- Banner modificado -->
+            <div class="px-4 pt-4 pb-2 relative z-10">
+                <img src="banner.jpg" alt="Promociones" class="w-full h-auto rounded-2xl shadow-md object-cover" style="aspect-ratio: 941 / 523;">
             </div>
 
             <!-- Buscador por Código -->
-            <div class="px-4 -mt-6 relative z-20">
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-2 flex items-center justify-between">
+            <div class="px-4 mt-2 relative z-20">
+                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-2 flex items-center justify-between">
                     <input type="text" id="codigoInput" placeholder="Buscá por nombre o código" 
                            class="w-full py-3 px-4 text-gray-700 outline-none rounded-xl font-medium"
                            onkeypress="handleEnter(event)">
@@ -295,7 +284,7 @@
             </div>
 
             <!-- Contenido Producto -->
-            <div class="flex-1 overflow-y-auto bg-white p-5 pb-32">
+            <div class="flex-1 overflow-y-auto bg-white p-5 pb-48"> <!-- Se agregó pb-48 para evitar que el texto quede cortado por los botones de abajo -->
                 
                 <!-- Galeria miniaturas -->
                 <div class="flex gap-3 justify-center mb-6" id="prod-gallery">
@@ -308,7 +297,9 @@
                 <p class="text-3xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Bs <span id="prod-price">0.00</span></p>
                 
                 <h3 class="font-bold text-gray-800 mb-2">Descripción del detalle</h3>
-                <p id="prod-desc" class="text-gray-500 text-sm leading-relaxed mb-6">
+                
+                <!-- Se agregó whitespace-pre-line y break-words para que los textos y párrafos largos salgan completos -->
+                <p id="prod-desc" class="text-gray-500 text-sm leading-relaxed mb-6 whitespace-pre-line break-words">
                     Descripción del producto aquí...
                 </p>
             </div>
