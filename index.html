@@ -350,8 +350,13 @@
         // =====================================================================
         // Cambia a 'true' si usas un hosting tradicional (no Drive) para tus imágenes
         const USAR_IMAGENES_POR_CODIGO = true; 
-        const URL_HOSTING_IMAGENES = "https://github.com/InstitucionFinancieradeDesarrollo/pedidosya/tree/c6435f464a3a1fce5fd5c703f08011a0c0b0e167/comida"; 
-        const EXTENSION_IMAGEN = ".png"; // o .png
+        
+        // MODIFICACIÓN APLICADA: 
+        // 1. Usar raw.githubusercontent.com en lugar del dominio normal de github.com
+        // 2. Añadir la barra diagonal '/' al final para que concatene correctamente con el código de la imagen
+        const URL_HOSTING_IMAGENES = "https://raw.githubusercontent.com/InstitucionFinancieradeDesarrollo/pedidosya/c6435f464a3a1fce5fd5c703f08011a0c0b0e167/comida/"; 
+        
+        const EXTENSION_IMAGEN = ".png"; // Asegúrate de que las imágenes en tu carpeta sean .png, si son .jpg cámbialo a ".jpg"
         // =====================================================================
 
         let productosBaseDeDatos = [];
@@ -412,7 +417,7 @@
         // Función para obtener las URLs de las imágenes
         function obtenerImagenesProducto(prod) {
             if (USAR_IMAGENES_POR_CODIGO && prod.Codigo) {
-                // Autogenera los enlaces en base al código: ej 456512A.jpg
+                // Autogenera los enlaces en base al código: ej 456512A.png
                 return [
                     `${URL_HOSTING_IMAGENES}${prod.Codigo}A${EXTENSION_IMAGEN}`,
                     `${URL_HOSTING_IMAGENES}${prod.Codigo}B${EXTENSION_IMAGEN}`,
